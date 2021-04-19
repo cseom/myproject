@@ -1,0 +1,587 @@
+#include "stm32f10x.h"
+#include "stm32f10x_adc.h"
+#include "stm32f10x_dma.h"
+
+int ms_counter = 0;
+double x=0,y=0,Z=0,W=0;
+__IO uint32_t ADC_DualConvertedValueTab[4];
+
+void GPIOA_Init(void);
+void USART1_Init(void);
+void motor_toggle(void);
+void PWM_PORT_Init(void);
+void PWM_PORT_Init_1(void);
+
+
+void TIM2_IRQHandler(void)
+{
+    if(TIM_GetITStatus(TIM2,TIM_IT_Update) != RESET) // output 1 if update interrupt flag is set. (flag is setted when TIM2 counts all the way up.)
+    {
+        TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+		}			// Clear the interrupt flag. (Unset the flag. and TIM2 has to count all the way up again.)        ms_counter++;
+		if(TIM_GetITStatus(TIM2,TIM_IT_CC3) != RESET)
+    {
+        TIM_ClearITPendingBit(TIM3,TIM_IT_CC1);
+    }
+		
+		
+}	
+
+void TIM3_IRQHandler(void)
+{
+    if(TIM_GetITStatus(TIM3,TIM_IT_Update) != RESET)
+    {
+			TIM_ClearITPendingBit(TIM3, TIM_IT_Update); // Clear the interrupt flag
+ 			ms_counter++;
+    }
+ 
+    if(TIM_GetITStatus(TIM3,TIM_IT_CC1) != RESET)
+    {
+        TIM_ClearITPendingBit(TIM3,TIM_IT_CC1);
+    }
+		
+}
+
+void delay_ms(unsigned int delay)
+{
+		ms_counter=0;
+    while(ms_counter < delay);
+}
+
+
+int main(void)
+{
+   		
+		PWM_PORT_Init();
+		PWM_PORT_Init_1();
+		GPIOA_Init();
+
+		USART1_Init();
+		TIM2->CCR3=250;
+	
+		GPIOA->BRR = GPIO_Pin_0;
+		GPIOA->BRR = GPIO_Pin_1;
+		GPIOA->BRR = GPIO_Pin_2;
+    /* Initialize USART1 */
+    TIM3->CCR1= 90;
+	
+ 
+    while(1)
+    {
+			
+			
+			
+			
+			x = ADC_DualConvertedValueTab[0];
+			y = ADC_DualConvertedValueTab[1];
+			Z = ADC_DualConvertedValueTab[2];
+			W = ADC_DualConvertedValueTab[3];
+// 			
+// 					GPIOA->BSRR = GPIO_Pin_0;
+// 					GPIOA->BRR = GPIO_Pin_1;
+// 					GPIOA->BSRR = GPIO_Pin_2;
+// 					TIM2->CCR3=150; 
+			
+// 			TIM3->CCR1= 125;
+// 			delay_ms(50);
+// 			TIM3->CCR1= 70;
+// 			delay_ms(50);
+// 			TIM3->CCR1= 95 ;
+// 			delay_ms(50);
+// 		
+			if((char)USART_ReceiveData(USART1) == '2'){
+					TIM3->CCR1= 95;
+				
+					if(y<500){																																																																																																																																																																																																																																																																																																																																																																																																																																																							
+						GPIOA->BSRR = GPIO_Pin_0;
+						GPIOA->BRR = GPIO_Pin_1;
+						GPIOA->BSRR = GPIO_Pin_2;
+						TIM2->CCR3= 150;	
+					}
+					else{
+					
+						GPIOA->BRR = GPIO_Pin_0;
+						GPIOA->BSRR = GPIO_Pin_1;
+						GPIOA->BSRR = GPIO_Pin_2;	
+						TIM2->CCR3= 50;
+
+					}
+		
+	}
+		
+			
+			
+		
+			if((char)USART_ReceiveData(USART1) == '3'){
+					TIM3->CCR1= 95;
+					if(W<500){
+						GPIOA->BRR = GPIO_Pin_0;
+						GPIOA->BSRR = GPIO_Pin_1;
+						GPIOA->BSRR = GPIO_Pin_2;
+						TIM2->CCR3= 150;
+					}
+					else{
+						GPIOA->BRR = GPIO_Pin_0;
+						GPIOA->BRR = GPIO_Pin_1;
+						GPIOA->BRR = GPIO_Pin_2;
+						TIM2->CCR3= 50;
+					}
+			}
+					
+			if((char)USART_ReceiveData(USART1) == '4'){
+				if(x<500){
+					if(Z<500){
+						GPIOA->BSRR = GPIO_Pin_0;
+						GPIOA->BRR = GPIO_Pin_1;
+						GPIOA->BSRR = GPIO_Pin_2;
+						TIM2->CCR3= 130;
+						TIM3->CCR1= 90;
+					}
+					if(y<500){
+						GPIOA->BSRR = GPIO_Pin_0;
+						GPIOA->BRR = GPIO_Pin_1;
+						GPIOA->BSRR = GPIO_Pin_2;
+						TIM2->CCR3= 130;
+						TIM3->CCR1= 90;			
+					}
+					
+					if(W<=1000){
+							GPIOA->BSRR = GPIO_Pin_0;
+							GPIOA->BRR = GPIO_Pin_1;
+							GPIOA->BSRR = GPIO_Pin_2;
+							TIM2->CCR3= 130;	
+							TIM3->CCR1= 90;
+					}
+					else{
+							GPIOA->BRR = GPIO_Pin_0;
+							GPIOA->BRR = GPIO_Pin_1;
+							GPIOA->BRR = GPIO_Pin_2;
+							TIM2->CCR3= 130;	
+							TIM3->CCR1= 90;
+
+					}
+
+					
+				}
+				else if(x>=2000){
+						GPIOA->BRR = GPIO_Pin_0;
+						GPIOA->BSRR = GPIO_Pin_1;
+						GPIOA->BSRR = GPIO_Pin_2;
+						TIM2->CCR3= 160;	
+						TIM3->CCR1= 60;
+				}
+					
+						if(Z>=1000){
+							GPIOA->BSRR = GPIO_Pin_0;
+							GPIOA->BRR = GPIO_Pin_1;
+							GPIOA->BSRR = GPIO_Pin_2;
+							TIM2->CCR3= 130;	
+							TIM3->CCR1= 120;
+						}
+						if(y>=2000){
+							GPIOA->BSRR = GPIO_Pin_0;
+							GPIOA->BRR = GPIO_Pin_1;
+							GPIOA->BSRR = GPIO_Pin_2;
+							TIM2->CCR3= 130;	
+							TIM3->CCR1= 60;
+						}
+						
+
+						
+
+						
+
+							
+				}
+									
+			}
+			
+		
+}
+					
+
+
+		
+
+
+ 
+/***********************************************
+ * Initialize GPIOA PIN8 as push-pull output
+ ***********************************************/
+void GPIOA_Init(void)
+{
+    /* Bit configuration structure for GPIOA PIN8 */
+    
+		GPIO_InitTypeDef PORT;
+	
+		
+		ADC_InitTypeDef ADC_InitStructure;
+		DMA_InitTypeDef DMA_InitStructure;
+
+																							
+    /* Enable PORT A clock */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC, ENABLE);                                 //
+    /* Initialize GPIOA: 50MHz, PIN8, Push-pull Output */
+	
+		PORT.GPIO_Pin = GPIO_Pin_0;
+		PORT.GPIO_Mode = GPIO_Mode_Out_PP;
+		PORT.GPIO_Speed = GPIO_Speed_50MHz;
+		GPIO_Init(GPIOA,&PORT);
+	
+		PORT.GPIO_Pin = GPIO_Pin_1;
+		PORT.GPIO_Mode = GPIO_Mode_Out_PP;
+		PORT.GPIO_Speed = GPIO_Speed_50MHz;
+		GPIO_Init(GPIOA,&PORT);
+	
+		
+		PORT.GPIO_Mode = GPIO_Mode_AF_PP;
+		PORT.GPIO_Pin = GPIO_Pin_6;
+		PORT.GPIO_Speed = GPIO_Speed_50MHz;
+		GPIO_Init(GPIOA, &PORT);
+		
+		
+		PORT.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_3 ;
+		PORT.GPIO_Mode = GPIO_Mode_AIN;
+		GPIO_Init(GPIOA,&PORT);
+		
+		PORT.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 ;
+		PORT.GPIO_Mode = GPIO_Mode_AIN;
+		GPIO_Init(GPIOC,&PORT);
+		
+
+
+		RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+		RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO  | RCC_APB2Periph_ADC1 , ENABLE );
+		
+
+	// DMA1 channel1 configuration ----------------------------------------------
+		DMA_DeInit(DMA1_Channel1);
+		DMA_DeInit(DMA1_Channel2);
+		DMA_DeInit(DMA1_Channel3);
+		DMA_DeInit(DMA1_Channel4);
+		
+		DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;
+		DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)ADC_DualConvertedValueTab;
+		DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+		DMA_InitStructure.DMA_BufferSize = 4;
+		DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+		DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+		DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word; // 32bit
+		DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word; // 32bit
+		DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+		DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+		DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+		
+		DMA_Init(DMA1_Channel1, &DMA_InitStructure);
+		DMA_Init(DMA1_Channel2, &DMA_InitStructure);
+		DMA_Init(DMA1_Channel3, &DMA_InitStructure);
+		DMA_Init(DMA1_Channel4, &DMA_InitStructure);
+
+// Enable DMA1 Channel1
+		DMA_Cmd(DMA1_Channel1, ENABLE);
+		DMA_Cmd(DMA1_Channel2, ENABLE);
+		DMA_Cmd(DMA1_Channel3, ENABLE);
+		DMA_Cmd(DMA1_Channel4, ENABLE);
+
+		ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+		ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+		ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
+		ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+		ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+		ADC_InitStructure.ADC_NbrOfChannel = 4;
+
+		ADC_Init(ADC1,&ADC_InitStructure);
+
+		ADC_RegularChannelConfig(ADC1,ADC_Channel_7,1,ADC_SampleTime_55Cycles5);
+		ADC_RegularChannelConfig(ADC1,ADC_Channel_3,2,ADC_SampleTime_55Cycles5);
+		ADC_RegularChannelConfig(ADC1,ADC_Channel_11,3,ADC_SampleTime_55Cycles5);
+		ADC_RegularChannelConfig(ADC1,ADC_Channel_10,4,ADC_SampleTime_55Cycles5);
+		
+		ADC_DMACmd(ADC1,ENABLE);
+
+		ADC_Cmd(ADC1,ENABLE);
+
+		ADC_ResetCalibration(ADC1);
+
+		while(ADC_GetResetCalibrationStatus(ADC1));
+
+		ADC_ResetCalibration(ADC1);
+	
+		while(ADC_GetCalibrationStatus(ADC1));
+		
+		ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+	
+}
+ 
+/*****************************************************
+ * Initialize USART1: enable interrupt on reception
+ * of a character
+ *****************************************************/
+void USART1_Init(void)
+{
+   
+   
+    /* USART configuration structure for USART1 */
+    USART_InitTypeDef usart1_init_struct;
+    /* Bit configuration structure for GPIOA PIN9 and PIN10 */
+    GPIO_InitTypeDef gpioa_init_struct;
+     
+    NVIC_InitTypeDef NVIC_InitStructure;
+
+    /* Enalbe clock for USART1, AFIO and GPIOA */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO | 
+                           RCC_APB2Periph_GPIOA, ENABLE);
+        
+
+   
+    /* GPIOA PIN9 alternative function Tx */
+    gpioa_init_struct.GPIO_Pin = GPIO_Pin_9;
+    gpioa_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioa_init_struct.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_Init(GPIOA, &gpioa_init_struct);
+	
+    /* GPIOA PIN9 alternative function Rx */
+    gpioa_init_struct.GPIO_Pin = GPIO_Pin_10;
+    gpioa_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioa_init_struct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOA, &gpioa_init_struct);
+ 
+    /* Enable USART1 */
+    USART_Cmd(USART1, ENABLE);  
+    /* Baud rate 9600, 8-bit data, One stop bit
+     * No parity, Do both Rx and Tx, No HW flow control
+     */
+    usart1_init_struct.USART_BaudRate = 9600;   
+    usart1_init_struct.USART_WordLength = USART_WordLength_8b;  
+    usart1_init_struct.USART_StopBits = USART_StopBits_1;   
+    usart1_init_struct.USART_Parity = USART_Parity_No ;
+    usart1_init_struct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+    usart1_init_struct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+    /* Configure USART1 */
+    USART_Init(USART1, &usart1_init_struct);
+    /* Enable RXNE interrupt */
+    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+    /* Enable USART1 global interrupt */
+    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);      
+      
+      
+}
+ 
+
+
+/*******************************************
+ * Toggle LED 
+ *******************************************/
+void motor_toggle(void)
+{
+
+    uint8_t DCMotor_1 = GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_0);
+		uint8_t DCMotor_2 = GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_1);
+		uint8_t DCMotor_3 = GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_2);
+	
+    /* If LED output set, clear it */
+    if(DCMotor_1  == (uint8_t)Bit_SET)
+        GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+    /* If LED output clear, set it */
+    else
+        GPIO_SetBits(GPIOA, GPIO_Pin_0);
+		
+		if(DCMotor_2  == (uint8_t)Bit_SET)
+        GPIO_SetBits(GPIOA, GPIO_Pin_1);
+    /* If LED output clear, set it */
+    else
+        GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+		
+		if(DCMotor_3  == (uint8_t)Bit_SET)
+        GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+    /* If LED output clear, set it */
+    else
+        GPIO_SetBits(GPIOA, GPIO_Pin_2);
+		
+				
+			
+			
+    
+}
+ 
+/**********************************************************
+ * USART1 interrupt request handler: on reception of a 
+ * character 't', toggle LED and transmit a character 'T'
+ *********************************************************/
+void USART1_IRQHandler(void)
+{
+
+//	AD1_value =ADC_GetConversionValue(ADC1);
+	
+   //   USART_SendData(USART1, 'T');
+    /* RXNE handler */
+    if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+    {
+				x =ADC_GetConversionValue(ADC1);
+			
+        /* If received 't', toggle LED and transmit 'T' */
+        if((char)USART_ReceiveData(USART1) == '1')
+        {
+					
+						motor_toggle();
+						
+            USART_SendData(USART1, '1');
+        }
+				
+				if((char)USART_ReceiveData(USART1) == '2')
+        {
+					
+					
+            USART_SendData(USART1, '2');
+        }
+				
+				if((char)USART_ReceiveData(USART1) == '3')
+        {
+				
+            USART_SendData(USART1, '3');
+        }
+				
+
+				if((char)USART_ReceiveData(USART1) == '4')
+        {
+					
+            USART_SendData(USART1, '4');
+        }
+				
+				if((char)USART_ReceiveData(USART1) == '5')
+        {
+					
+					
+						TIM3->CCR1= 70;
+					
+						
+					
+            USART_SendData(USART1, '5');
+        }
+				if((char)USART_ReceiveData(USART1) == '6')
+        {
+				
+						TIM3->CCR1= 125;
+					
+					
+            USART_SendData(USART1, '6');
+        }
+			
+				
+				
+		}
+ }
+     
+    /* ------------------------------------------------------------ */
+    /* Other USART1 interrupts handler can go here ...             */
+
+
+
+
+void PWM_PORT_Init() 
+{
+	TIM_TimeBaseInitTypeDef		A;
+	TIM_OCInitTypeDef					B;
+	GPIO_InitTypeDef					C;
+	NVIC_InitTypeDef NVIC_STR;
+	
+	
+	// RCC(Reset and Clock Control) Configuration
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);	// Reset and Clock Contorl
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // RCC_APB2Periph_AFIO
+	
+	
+	// GPIO Configuration
+	C.GPIO_Pin = GPIO_Pin_6;
+	C.GPIO_Mode = GPIO_Mode_AF_PP;	// Alternate Function - Push Pull
+	C.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &C);
+	
+	NVIC_STR.NVIC_IRQChannel = TIM3_IRQn;
+	NVIC_STR.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_STR.NVIC_IRQChannelSubPriority = 1;
+	NVIC_STR.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_STR);
+	
+
+	
+	A.TIM_Period = 1000-1; // 2000 for 10us
+	A.TIM_Prescaler = 1200-1; 
+	A.TIM_ClockDivision = 0;
+	A.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(TIM3, &A);
+
+
+	// Initialize OC(Output Compare)
+	B.TIM_OCMode = TIM_OCMode_PWM1; 
+	B.TIM_OCPolarity = TIM_OCPolarity_High;			// ON is 'High'.
+
+	//CH1 setting start(TIM2 CH1 : PA0)
+	B.TIM_OutputState = TIM_OutputState_Enable; 
+	B.TIM_Pulse = 500;
+	
+	TIM_OC1Init(TIM3, &B);
+	
+	TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Enable);
+	//CH1 setting end
+	
+	TIM_ARRPreloadConfig(TIM3, ENABLE);
+	
+	TIM_Cmd(TIM3, ENABLE);
+	
+	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+}
+
+void PWM_PORT_Init_1(){
+		TIM_TimeBaseInitTypeDef		A;
+		TIM_OCInitTypeDef					B;
+		GPIO_InitTypeDef					C;
+		NVIC_InitTypeDef NVIC_STR;
+	
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);	// Reset and Clock Contor
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // RCC_APB2Periph_AFIO
+	
+		C.GPIO_Pin = GPIO_Pin_2;
+		C.GPIO_Mode = GPIO_Mode_AF_PP;	// Alternate Function - Push Pull
+		C.GPIO_Speed = GPIO_Speed_50MHz;
+		GPIO_Init(GPIOA, &C);
+	
+		NVIC_STR.NVIC_IRQChannel = TIM2_IRQn;
+		NVIC_STR.NVIC_IRQChannelPreemptionPriority = 0;
+		NVIC_STR.NVIC_IRQChannelSubPriority = 1;
+		NVIC_STR.NVIC_IRQChannelCmd = ENABLE;
+		NVIC_Init(&NVIC_STR);
+	
+		// Initialize Timer
+		A.TIM_Period = 875-1; // 2000 for 10us
+		A.TIM_Prescaler = 1050-1; 
+		A.TIM_ClockDivision = 0;
+		A.TIM_CounterMode = TIM_CounterMode_Up;
+		TIM_TimeBaseInit(TIM2, &A); 
+		
+			// Initialize OC(Output Compare)
+		B.TIM_OCMode = TIM_OCMode_PWM1; 
+		B.TIM_OCPolarity = TIM_OCPolarity_High;			// ON is 'High'.
+		
+			//CH3 setting start(TIM2 CH3 : PA2)
+		B.TIM_OutputState = TIM_OutputState_Enable;
+		B.TIM_Pulse = 375;
+
+		TIM_OC3Init(TIM2, &B); 
+
+		TIM_OC3PreloadConfig(TIM2, TIM_OCPreload_Enable);
+		
+		TIM_ARRPreloadConfig(TIM2, ENABLE);
+		TIM_Cmd(TIM2, ENABLE);
+		TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+		//CH3 setting end
+
+} 
+
+
+

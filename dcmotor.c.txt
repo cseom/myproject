@@ -1,0 +1,121 @@
+#include "stm32f10x.h"
+#include <stdio.h>
+
+int ms_counter = 0;
+
+void PWM_PORT_Init() 
+{
+	TIM_TimeBaseInitTypeDef		A;
+	TIM_OCInitTypeDef					B;
+	GPIO_InitTypeDef					C;
+	NVIC_InitTypeDef NVIC_STR;
+	
+	
+	// RCC(Reset and Clock Control) Configuration
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);	// Reset and Clock Contor
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);	// Reset and Clock Contorl
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // RCC_APB2Periph_AFIO
+	
+	
+	// GPIO Configuration
+	C.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_0 | GPIO_Pin_1;
+	C.GPIO_Mode = GPIO_Mode_AF_PP;	// Alternate Function - Push Pull
+	C.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &C);
+	
+	NVIC_STR.NVIC_IRQChannel = TIM2_IRQn | TIM3_IRQn;
+	NVIC_STR.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_STR.NVIC_IRQChannelSubPriority = 1;
+	NVIC_STR.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_STR);
+	
+	// Initialize Timer
+	A.TIM_Period = 24-1; // 2000 for 10us
+	A.TIM_Prescaler = 1000-1; 
+	A.TIM_ClockDivision = 0;
+	A.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(TIM2, &A); 
+
+
+	// Initialize OC(Output Compare)
+	B.TIM_OCMode = TIM_OCMode_PWM1; 
+	B.TIM_OCPolarity = TIM_OCPolarity_High;			// ON is 'High'.
+
+	//CH1 setting start(TIM2 CH1 : PA0)
+	B.TIM_OutputState = TIM_OutputState_Enable; 
+	B.TIM_Pulse = 2000;
+
+	TIM_OC1Init(TIM2, &B);
+	TIM_OC1Init(TIM3, &B);
+
+	TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
+	//CH1 setting end
+	
+	//CH2 setting start(TIM2 CH2 : PA1)
+	B.TIM_OutputState = TIM_OutputState_Enable; 
+	B.TIM_Pulse = 2000;
+
+	TIM_OC2Init(TIM2, &B);
+
+	TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Enable);
+	//CH1 setting end
+	
+	//CH3 setting start(TIM2 CH3 : PA2)
+	B.TIM_OutputState = TIM_OutputState_Enable;
+	B.TIM_Pulse = 1500;
+
+	TIM_OC3Init(TIM2, &B); 
+
+	TIM_OC3PreloadConfig(TIM2, TIM_OCPreload_Enable);
+	//CH3 setting end
+
+	TIM_ARRPreloadConfig(TIM2, ENABLE);
+	TIM_Cmd(TIM2, ENABLE);
+}
+
+
+void TIM2_IRQHandler(void)
+{
+    if(TIM_GetITStatus(TIM2,TIM_IT_Update) != RESET) // output 1 if update interrupt flag is set. (flag is setted when TIM2 counts all the way up.)
+    {
+        TIM_ClearITPendingBit(TIM2, TIM_IT_Update); // Clear the interrupt flag. (Unset the flag. and TIM2 has to count all the way up again.)
+        ms_counter++;
+		}
+}
+	
+
+
+int main()
+{
+	GPIO_InitTypeDef PORTA;
+	
+	PWM_PORT_Init();
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	
+	PORTA.GPIO_Pin = GPIO_Pin_0;
+	PORTA.GPIO_Mode = GPIO_Mode_Out_PP;
+	PORTA.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&PORTA);
+	
+	PORTA.GPIO_Pin = GPIO_Pin_1;
+	PORTA.GPIO_Mode = GPIO_Mode_Out_PP;
+	PORTA.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&PORTA);
+	
+	PORTA.GPIO_Pin = GPIO_Pin_2;
+	PORTA.GPIO_Mode = GPIO_Mode_Out_PP;
+	PORTA.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&PORTA);
+	while(1){
+		
+			
+		GPIOA->BSRR = GPIO_Pin_2;
+		GPIOA->BSRR = GPIO_Pin_0;
+		GPIOA->BRR  = GPIO_Pin_1;
+		}
+}
+
+
+
+

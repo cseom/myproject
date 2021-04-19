@@ -1,0 +1,106 @@
+#include "stm32f10x.h"
+#include <stdio.h>
+
+int ms_counter = 0;
+
+void PWM_PORT_Init() 
+{
+	
+	TIM_TimeBaseInitTypeDef		A;
+	TIM_OCInitTypeDef					B;
+	GPIO_InitTypeDef		      C;
+	NVIC_InitTypeDef   NVIC_STR;
+	
+	// RCC(Reset and Clock Control) Configuration
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);	// Reset and Clock Contorl
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // RCC_APB2Periph_AFIO
+	
+	
+	// GPIO Configuration
+	C.GPIO_Pin = GPIO_Pin_6;
+	C.GPIO_Mode = GPIO_Mode_AF_PP;	// Alternate Function - Push Pull
+	C.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &C);
+
+	NVIC_STR.NVIC_IRQChannel = TIM3_IRQn; 						// I'm gonna use TIM2
+	NVIC_STR.NVIC_IRQChannelPreemptionPriority = 0;		// Just priority thingy.
+	NVIC_STR.NVIC_IRQChannelSubPriority = 1;
+	NVIC_STR.NVIC_IRQChannelCmd = ENABLE;							// Enables NVIC
+	NVIC_Init(&NVIC_STR); 
+	
+	
+	// Initialize Timer
+	A.TIM_Period = 1000-1; // 2000 for 10us
+	A.TIM_Prescaler = 1200-1; 
+	A.TIM_ClockDivision = 0;
+	A.TIM_CounterMode = TIM_CounterMode_Up;
+	A.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM3, &A); 
+	
+	// Initialize OC(Output Compare)
+	B.TIM_OCMode = TIM_OCMode_PWM1; 
+	B.TIM_OCPolarity = TIM_OCPolarity_High;			// ON is 'High'.
+	
+	//CH1 setting start(TIM2 CH1 : PA6)
+	B.TIM_OutputState = TIM_OutputState_Enable; 
+	B.TIM_Pulse = 500;
+
+	TIM_OC1Init(TIM3, &B);
+
+	TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Enable);
+	//CH1 setting end
+	
+
+//	TIM_ARRPreloadConfig(TIM3, ENABLE);
+	TIM_Cmd(TIM3, ENABLE);
+	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+}
+
+
+
+
+void TIM3_IRQHandler(void)
+{
+    if(TIM_GetITStatus(TIM3,TIM_IT_Update) != RESET)
+    {
+			TIM_ClearITPendingBit(TIM3, TIM_IT_Update); // Clear the interrupt flag
+ 			ms_counter++;
+    }
+ 
+    if(TIM_GetITStatus(TIM3,TIM_IT_CC1) != RESET)
+    {
+        TIM_ClearITPendingBit(TIM3,TIM_IT_CC1);
+    }
+		
+}
+
+
+void delay_ms(unsigned int delay)
+{
+		ms_counter=0;
+    while(ms_counter < delay);
+}
+
+
+int main()
+{
+	
+
+	PWM_PORT_Init();
+
+	while(1){
+
+		TIM3->CCR1= 40;
+		delay_ms(50);
+		TIM3->CCR1= 70;
+		delay_ms(50);
+		TIM3->CCR1= 110;
+		delay_ms(50);
+	}
+}
+
+	
+	
+
+
+
