@@ -1,0 +1,119 @@
+#include "stm32f10x.h"
+
+void PWM_SET(void);
+void GPIO_SET(void);
+
+int count;
+
+int main()
+{
+   
+   GPIO_SET();                                                //GPIO설정함수호출
+   PWM_SET();                                                 //PWM설정함수호출        
+	
+   TIM3->CCR1 = 24;																						//TIM[사용한 타이머]->CCR[채널] = 원하는 값; CCR 설정
+   
+   while(1)
+   {
+   }
+   
+}
+
+
+void GPIO_SET(void)                                       //GPIO설정함수
+{
+   GPIO_InitTypeDef GPIO_SET;                             //GPIO_InitTypeDef [구조체 이름]
+   
+   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);  //사용할 LED핀 포트 && PWM을 사용할 것이기 때문에 Alternative Function도 ENABLE해준다
+   
+   
+   //엘이디 핀설정
+   GPIO_SET.GPIO_Pin=GPIO_Pin_6;                              //핀 번호
+   GPIO_SET.GPIO_Mode=GPIO_Mode_AF_PP;                 		    //모드 설정(Alternative Function으로)
+   GPIO_SET.GPIO_Speed = GPIO_Speed_50MHz;            		    //속도 설정
+   GPIO_Init(GPIOA,&GPIO_SET);                                //제출
+
+}
+
+void PWM_SET(void)
+{
+  
+   TIM_TimeBaseInitTypeDef TIM_SET;              				 //TIM_TimeBaseInitTypeDef [구조체 이름]
+   TIM_OCInitTypeDef   TIM_OC;                           //TIM Output Compare Init
+	 NVIC_InitTypeDef NVIC_SET;														 //TIM2의 우선순위 설정을 위해
+   
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_TIM3,ENABLE);         //2,3번 타이머 ENABLE(3번 타이머 pwm)
+   RCC_ClockSecuritySystemCmd(ENABLE);
+   
+
+   TIM_SET.TIM_Period = 24-1;                                  //period 설정 ARR 레지스터에 의해 결정되는 주파수
+   TIM_SET.TIM_Prescaler = 1000-1;                        	   //prescaler 설정
+   TIM_SET.TIM_ClockDivision = 0;                         	   //clockdivision 설정
+   TIM_SET.TIM_CounterMode = TIM_CounterMode_Up;     					 //count up모드
+   TIM_SET.TIM_RepetitionCounter = 0;													 
+   TIM_TimeBaseInit(TIM3,&TIM_SET);                     		   //제출
+   
+   
+   
+   TIM_OC.TIM_OCMode = TIM_OCMode_PWM1;												 //Output Compare Mode 설정
+   TIM_OC.TIM_OCPolarity = TIM_OCPolarity_High;								 //TIM OCPolarity High
+   TIM_OC.TIM_OutputState = TIM_OutputState_Enable;						 //TIM OutputState ENABLE
+   TIM_OC.TIM_Pulse = 1000;																		 //CRR 레지스터에 의해 결정되는 듀티 사이클(duty cycle)
+   TIM_OC1PreloadConfig(TIM3,TIM_OCPreload_Enable);						 //TIM3 peripheral Preload register on CCR1 ENABLE
+   TIM_OC1Init(TIM3,&TIM_OC);                                  //제출
+   
+      
+   TIM_ARRPreloadConfig(TIM3, ENABLE);												 //TIM3 peripheral Preload register on ARR ENABLE
+   TIM_Cmd(TIM3,ENABLE);                     									 //TIM3 Comand ENABLE
+   TIM_CtrlPWMOutputs(TIM3,ENABLE);   												 //TIM peripheral Main Outputs ENABLE
+	 
+
+
+   ////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+	 
+	 TIM_SET.TIM_Period = 24-1;                                  //period 설정
+   TIM_SET.TIM_Prescaler = 1000-1;                        	   //prescaler 설정
+   TIM_SET.TIM_ClockDivision = 0;                         	   //clockdivision 설정
+   TIM_SET.TIM_CounterMode = TIM_CounterMode_Up;     					 //count up모드												 
+   TIM_TimeBaseInit(TIM2,&TIM_SET);   												 //제출
+   
+	 
+	 NVIC_SET.NVIC_IRQChannel = TIM2_IRQn;											//TIMER2에 대한 우선순위설정
+	 NVIC_SET.NVIC_IRQChannelPreemptionPriority = 0;						//첫번째 우선순위
+	 NVIC_SET.NVIC_IRQChannelSubPriority = 1;										//두번째 우선순위
+ 	 NVIC_SET.NVIC_IRQChannelCmd = ENABLE;											//ENABLE
+   NVIC_Init(&NVIC_SET);																			//제출
+	 
+	 
+	 TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);										//TIM2의 Interrupt ENABLE
+	 TIM_Cmd(TIM2,ENABLE);																			//TIM2 Comand ENABLE
+}
+
+void TIM2_IRQHandler(void)
+{
+	if(TIM_GetITStatus(TIM2,TIM_IT_Update) != 0)		//인터럽트가 발생
+	{
+		TIM_ClearITPendingBit(TIM2,TIM_IT_Update);		//인터럽트 초기화 (계속 인터럽트를 받을 수 있도록)
+		
+		count++;
+		
+		if(count==500)
+		{
+			TIM3->CCR1--;
+			
+			if(TIM3->CCR1!=1)
+				count=0;
+		}
+		else if(count==1000)
+		{
+			TIM3->CCR1++;
+			
+			if(TIM3->CCR1!=24)
+				count=501;
+			else
+				count=0;
+		}
+		
+			
+	}
+}

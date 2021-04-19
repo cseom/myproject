@@ -1,0 +1,52 @@
+#include "stm32f10x.h"
+
+void GPIO_SET(void);
+void delay(unsigned int delay_a);
+
+int counter=0;
+
+int main()
+{
+	GPIO_SET();																//GPIO설정함수호출
+
+	while(1)
+	{
+
+			GPIOA->BSRR=GPIO_Pin_4;								//led set
+			delay(2000000);												//delay
+			GPIOA->BRR=GPIO_Pin_4;								//led reset
+			delay(2000000);												//delay
+		
+	}
+	
+}
+
+
+void GPIO_SET(void)													//GPIO설정함수
+{
+	GPIO_InitTypeDef A;												//GPIO_InitTypeDef [구조체 이름]
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);   //GPIOA를 ENABLE 시킨다
+	
+	
+	//엘이디 핀설정
+	A.GPIO_Pin=GPIO_Pin_4;										//핀 번호
+	A.GPIO_Mode=GPIO_Mode_Out_PP;							//모드 설정
+	A.GPIO_Speed = GPIO_Speed_50MHz;					//속도 설정
+	GPIO_Init(GPIOA,&A);											//제출
+
+}
+
+void delay(unsigned int delay_a)
+{
+	counter=0;															//초기화
+	
+	while(counter<delay_a)									//원하는 delay보다 작을 동안
+	{	
+		counter++;														//counter가 1씩 증가하여 원하는 delay시간만큼 delay된다
+	}
+	
+
+}
+
+

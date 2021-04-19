@@ -1,0 +1,643 @@
+MAIN.C
+#include "stm32f10x.h"
+#include <stdio.h>  
+#include "handle.h"
+#include "LCD_ARM.h"
+#include "ADC_ARM.h"
+#include "acc_table(12000).h"
+
+
+void RCC_Configuration(void);
+void GPIO_Configuration_button(void);
+void EXTI_Configuration(void);
+void NVIC_Configuration(void);
+void STEP_PORT_Init(void);
+
+
+volatile int  R_Motor_Speed ;
+volatile int  L_Motor_Speed ;
+volatile int end_check;
+volatile int stop_check;
+volatile int start_step;
+volatile int end_step;
+volatile int R_step;
+volatile int L_step;
+volatile int Motor_index = 0;
+volatile int Acc_Limit = 500;
+volatile int ready=0;
+
+volatile int R_Motor_step[8]={0x2100,0x2000,0x2200,0x0200,0x0600,0x0400,0x0500,0x0100};//{0x0100,0x0500,0x0400,0x0600,0x0200,0x2200,0x2000,0x2100};
+                    
+//A 0X0100  A/ 0X0200  B 0X0400 B/ 0X2000
+volatile int L_Motor_step[8]=/*{0x0024,0x0004,0x000C,0x0008,0x0018,0x0010,0x0030,0x0020};*/{0x0004,0x0014,0x0010,0x0018,0x0008,0x0028,0x0020,0x0024};
+
+//A 0X0004	A/ 0X0008  B 0X0010 B/ 0X0020
+
+volatile int cross_in=0;
+volatile int cross=0;
+volatile int stop=0;
+volatile int start_in=0;
+volatile int start=0;
+volatile int step=0;
+
+
+
+
+
+int count = 0;
+int ok=0;
+
+
+
+
+
+
+
+
+
+
+int main(void)
+{
+	RCC_Configuration_ADC();
+	GPIO_Configuration_ADC();
+	ADC1_Configuration();
+	TIM_Configuration_ADC();
+	NVIC_Configuration_ADC();
+	RCC_Configuration_LCD();
+	GPIO_Configuration_LCD();
+	RCC_Configuration();
+	GPIO_Configuration_button();
+	EXTI_Configuration();
+	NVIC_Configuration();
+	STEP_PORT_Init();
+ 	LCD_init();
+	sprintf(LCD_LINE1,"line");
+	sprintf(LCD_LINE2,"tracer");	
+	LCD_print();
+	while(1)
+	{
+
+
+
+		
+		while(menu==-1){
+			   TIM_Cmd(TIM2,DISABLE);                                          
+         TIM_ITConfig(TIM2, TIM_IT_Update, DISABLE);   
+         TIM_Cmd(TIM3,DISABLE);                                          
+         TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+
+         GPIOD->ODR = 0x0000;
+         GPIOE->ODR = 0x0000;
+        
+
+
+    }
+		
+
+			
+			
+		
+		if(menu==1){
+			
+		 if(count==0){
+			
+		  sprintf(LCD_LINE1,"ADC");
+		  sprintf(LCD_LINE2,"");	
+		  LCD_print();
+		 }
+		 if(count==1){
+				
+				sprintf(LCD_LINE1,"%d %d",ADC[0],ADC[1]);
+		    sprintf(LCD_LINE2,"%d %d",ADC[2],ADC[3]);	
+		    LCD_print();
+      }
+		  if(count==2){
+				sprintf(LCD_LINE1,"%d %d",ADC[4],ADC[5]);
+		    sprintf(LCD_LINE2,"%d %d",ADC[6],ADC[7]);	
+		    LCD_print();
+      }
+			if(count==3){
+				sprintf(LCD_LINE1,"%d %d",ADC[8],ADC[9]);
+		    sprintf(LCD_LINE2,"%d %d",ADC[10],ADC[11]);	
+		    LCD_print();
+      }
+		  if(count==4){
+				sprintf(LCD_LINE1,"%d %d",ADC[12],ADC[13]);
+		    sprintf(LCD_LINE2,"%d %d",ADC[14],ADC[15]);	
+		    LCD_print();
+      }
+			if(count>4) count = 0;
+
+
+    }
+		
+		if(menu==2){
+			
+		 if(count==0){
+			
+		  sprintf(LCD_LINE1,"ADC_MAX");
+		  sprintf(LCD_LINE2,"");	
+		  LCD_print();
+		 }
+		 
+			
+			if(count==1){
+				
+				sprintf(LCD_LINE1,"%d %d",ADC_Max[0],ADC_Max[1]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Max[2],ADC_Max[3]);	
+		    LCD_print();
+      }
+		  if(count==2){
+				sprintf(LCD_LINE1,"%d %d",ADC_Max[4],ADC_Max[5]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Max[6],ADC_Max[7]);	
+		    LCD_print();
+      }
+			if(count==3){
+				sprintf(LCD_LINE1,"%d %d",ADC_Max[8],ADC_Max[9]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Max[10],ADC_Max[11]);	
+		    LCD_print();
+      }
+		  if(count==4){
+				sprintf(LCD_LINE1,"%d %d",ADC_Max[12],ADC_Max[13]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Max[14],ADC_Max[15]);	
+		    LCD_print();
+      }
+			if(count>4) count = 0;
+			
+     }
+	
+	  if(menu==3){
+		 if(count==0){
+			 
+		   sprintf(LCD_LINE1,"ADC_MIN");
+		   sprintf(LCD_LINE2,"");	
+		   LCD_print();
+		 }
+		 if(count==1){
+				sprintf(LCD_LINE1,"%d %d",ADC_Min[0],ADC_Min[1]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Min[2],ADC_Min[3]);	
+		    LCD_print();
+      }
+		 if(count==2){
+				sprintf(LCD_LINE1,"%d %d",ADC_Min[4],ADC_Min[5]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Min[6],ADC_Min[7]);	
+		    LCD_print();
+      }
+			if(count==3){
+				sprintf(LCD_LINE1,"%d %d",ADC_Min[8],ADC_Min[9]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Min[10],ADC_Min[11]);	
+		    LCD_print();
+      }
+		  if(count==4){
+				sprintf(LCD_LINE1,"%d %d",ADC_Min[12],ADC_Min[13]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Min[14],ADC_Min[15]);	
+		    LCD_print();
+      }
+			if(count>4) count = 0;
+			
+     }
+	 
+	 if(menu==4){
+		 	if(count==0){
+		   sprintf(LCD_LINE1,"ADC_nom");
+		   sprintf(LCD_LINE2,"");	
+		   LCD_print();
+			}
+			if(count==1){
+				sprintf(LCD_LINE1,"%d %d",ADC_Normal[0],ADC_Normal[1]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Normal[2],ADC_Normal[3]);	
+		    LCD_print();
+      }
+		 if(count==2){
+				sprintf(LCD_LINE1,"%d %d",ADC_Normal[4],ADC_Normal[5]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Normal[6],ADC_Normal[7]);	
+		    LCD_print();
+      }
+			if(count==3){
+				sprintf(LCD_LINE1,"%d %d",ADC_Normal[8],ADC_Normal[9]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Normal[10],ADC_Normal[11]);	
+		    LCD_print();
+      }
+		  if(count==4){
+				sprintf(LCD_LINE1,"%d %d",ADC_Normal[12],ADC_Normal[13]);
+		    sprintf(LCD_LINE2,"%d %d",ADC_Normal[14],ADC_Normal[15]);	
+		    LCD_print();
+      }
+			if(count>4) count = 0;
+
+    }
+   
+	 if(menu==5){
+		 	sprintf(LCD_LINE1,"mis_val");
+		   sprintf(LCD_LINE2,"%d",mis_value);	
+		   LCD_print();
+   }
+	 if(menu==6){
+		 	 sprintf(LCD_LINE1,"hand");
+		   sprintf(LCD_LINE2,"%d",hand);	
+		   LCD_print();
+	
+   }
+	 if(menu==7){
+		 	 sprintf(LCD_LINE1,"ACC_LIM");
+		   sprintf(LCD_LINE2,"%d",Acc_Limit);	
+		   LCD_print();
+   }
+
+	 
+		 
+
+	 if(menu==8){
+		 	 sprintf(LCD_LINE1,"weight[1]");
+		   sprintf(LCD_LINE2,"%d %d",weight[3],weight[12]);	
+		   LCD_print();
+   }
+	 if(menu==9){
+		 	 sprintf(LCD_LINE1,"weight[2]");
+		   sprintf(LCD_LINE2,"%d %d",weight[4],weight[11]);	
+		   LCD_print();
+   }
+	 if(menu==10){
+		 	 sprintf(LCD_LINE1,"weight[3]");
+		   sprintf(LCD_LINE2,"%d %d",weight[5],weight[10]);	
+		   LCD_print();
+   }
+	 if(menu==11){
+		 	 sprintf(LCD_LINE1,"weight[4]");
+		   sprintf(LCD_LINE2,"%d %d",weight[6],weight[9]);	
+		   LCD_print();
+   }
+	 if(menu==12){
+		 	 sprintf(LCD_LINE1,"weight[5]");
+		   sprintf(LCD_LINE2,"%d %d",weight[7],weight[8]);	
+		   LCD_print();
+   }
+	 if(menu==13){
+		 	 sprintf(LCD_LINE1,"start");
+		   sprintf(LCD_LINE2,"");	
+		   LCD_print();
+   }
+	 
+	 
+		 
+	 
+	 
+	 if(menu>=14){
+		     Motor_index=0;
+         TIM_Cmd(TIM2,ENABLE);                                          
+         TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);   
+         TIM_Cmd(TIM3,ENABLE);                                          
+         TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+		 	 sprintf(LCD_LINE1,"");
+		   sprintf(LCD_LINE2,"");	
+		   LCD_print();
+	 
+		 GPIOG->BRR = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
+	 while(menu>=14){
+                 if(ADC_Normal[2] < 30 && ADC_Normal[3] < 30 && ADC_Normal[4] < 30 && ADC_Normal[5] < 30 && ADC_Normal[6] < 30 && ADC_Normal[7] < 30 && ADC_Normal[8] < 30 && ADC_Normal[9] < 30 && ADC_Normal[10] < 30 && ADC_Normal[11] < 30 && ADC_Normal[12] < 30&& ADC_Normal[13] < 30)
+									 menu=-1;
+       if(start_step>500){
+								 if(cross_in==0 && cross==0 && ADC_Normal[0] > 40 && ADC_Normal[15] > 40) 
+								 {
+														 end_check=1;
+									           stop_check=1;
+									           
+									           Acc_Limit=50;                            
+								 }
+								 
+								 while(stop_check==1)
+                        {
+            
+                              if(end_step>400)
+                              {
+
+                                 TIM_Cmd(TIM2,DISABLE);                                          
+                                 TIM_ITConfig(TIM2, TIM_IT_Update, DISABLE);   
+                                 TIM_Cmd(TIM3,DISABLE);                                          
+                                 TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+
+               
+                                 delay_cnt_LCD(2500000);
+                                 GPIOD->ODR = 0x0000;
+																 GPIOE->ODR = 0x0000;
+                                 
+															}
+													
+													}
+								 
+								 
+								 
+					
+							   if(ADC_Normal[5] > 40 && ADC_Normal[6] > 40 && ADC_Normal[7] > 40 && ADC_Normal[8] > 40 && ADC_Normal[9] > 40 && ADC_Normal[10] > 40){
+									 cross_in=1;							 
+							   }
+
+							   if(cross_in==1 && ADC_Normal[0] > 40 && ADC_Normal[15] > 40){
+									 cross=1;
+									 stop=1;
+								 }
+								 if( cross_in==1 && cross==1 &&  ADC_Normal[0] < 10 && ADC_Normal[15] < 10)
+								 {									
+									 cross_in=0; 
+									 cross=0;
+								 }
+							 }
+								  
+							
+                
+								 
+									      									                     
+							 
+                 }
+
+                 }								 
+ 
+   if(menu<=13) delay_cnt_LCD(960000);
+ }
+
+}
+void RCC_Configuration(){
+
+
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+
+		
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD, ENABLE); 
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE, ENABLE);
+	
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+
+}
+
+
+
+void GPIO_Configuration_button(void){
+
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	
+	
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 ;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	// Alternate Function - Push Pull
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOE, &GPIO_InitStructure);
+
+	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_13;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	// Alternate Function - Push Pull
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOD, &GPIO_InitStructure);
+	
+
+	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	
+	
+}
+	
+	
+void EXTI_Configuration(void){	
+	
+	EXTI_InitTypeDef EXTI_InitStructure;
+	
+	
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource5);
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource6);
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource7);
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource8);
+	
+	EXTI_InitStructure.EXTI_Line = EXTI_Line5 | EXTI_Line6 | EXTI_Line7 | EXTI_Line8;												// Target Line = EXTI_Line1
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;   											// Enable interrupt
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;    					// Interrupt mode
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;   // Act when rising and falling edge (Button push and pull moment)
+	EXTI_Init(&EXTI_InitStructure);
+}
+	
+void NVIC_Configuration(void){
+	
+	NVIC_InitTypeDef NVIC_InitStructure;
+	
+	
+	NVIC_InitStructure.NVIC_IRQChannel =EXTI9_5_IRQn;									// External Interrupt 1_Interrupt Request
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x00;			// Major Priority
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;						// Sub Priority
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	
+	
+	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	
+	
+	
+}
+
+
+void STEP_PORT_Init() 
+{
+	TIM_TimeBaseInitTypeDef		TIM;
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	
+
+	TIM.TIM_Period = 40000-1; // 2000 for 10us
+	TIM.TIM_Prescaler = 8-1; 
+	TIM.TIM_ClockDivision = 0;
+	TIM.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(TIM2, &TIM);
+	TIM_Cmd(TIM2, DISABLE);
+	TIM_ITConfig(TIM2, TIM_IT_Update, DISABLE);
+	
+	
+	TIM.TIM_Period = 40000-1; // 2000 for 10us
+	TIM.TIM_Prescaler = 8-1; 
+	TIM.TIM_ClockDivision = 0;
+	TIM.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(TIM3, &TIM);	
+	TIM_Cmd(TIM3, DISABLE);
+	TIM_ITConfig(TIM3, TIM_IT_Update, DISABLE);
+
+}
+
+void EXTI9_5_IRQHandler(void)
+{
+	
+	 delay_cnt_LCD(2000000);
+	
+   if(EXTI_GetITStatus(EXTI_Line5) != RESET)
+     {      
+       
+       EXTI_ClearITPendingBit(EXTI_Line5);
+			 menu++;
+
+			 
+	   }
+     
+	
+			 
+			 
+			 
+
+
+			 
+   if(EXTI_GetITStatus(EXTI_Line6) != RESET)
+   {
+
+      EXTI_ClearITPendingBit(EXTI_Line6);
+	
+    
+		 				  count++;
+		 if(menu==6){
+			 hand+=2;
+     }
+		 if(menu==7){
+			 Acc_Limit+=5;
+     }
+		 if(menu==8){
+			 weight[3]+=5;
+       weight[12]-=5;
+     }
+		 if(menu==9){
+			 weight[4]+=5;
+       weight[11]-=5;
+     }
+		 if(menu==10){
+			 weight[5]+=5;
+       weight[10]-=5;
+     }
+		 if(menu==11){
+			 weight[6]+=5;
+       weight[9]-=5;
+     }
+		 if(menu==11){
+			 weight[7]+=5;
+       weight[8]-=5;
+     }
+
+		  	 
+	 }
+			
+ 
+
+		 
+		 
+		 
+  
+   if(EXTI_GetITStatus(EXTI_Line7) != RESET)
+   {
+			EXTI_ClearITPendingBit(EXTI_Line7);
+		 
+			 menu--;
+
+ 
+   }
+ 		
+
+	   
+		 
+   
+   if(EXTI_GetITStatus(EXTI_Line8) != RESET)
+   {
+      EXTI_ClearITPendingBit(EXTI_Line8);
+		 
+
+      count--;
+		 
+		 if(menu==6){
+			 hand-=2;
+     }
+		 if(menu==7){
+			 Acc_Limit-=5;
+     }
+		 if(menu==8){
+			 weight[3]-=5;
+       weight[12]+=5;
+     }
+		 if(menu==9){
+			 weight[4]-=5;
+       weight[11]+=5;
+     }
+		 if(menu==10){
+			 weight[5]-=5;
+       weight[10]+=5;
+     }
+		 if(menu==11){
+			 weight[6]-=5;
+       weight[9]+=5;
+     }
+		 if(menu==12){
+			 weight[7]-=5;
+       weight[8]+=5;
+     }
+			 
+	
+   }
+
+ }
+
+
+void TIM2_IRQHandler(void)
+{	
+
+    if(TIM_GetITStatus(TIM2,TIM_IT_Update) != RESET)
+   {
+       TIM_ClearITPendingBit(TIM2, TIM_IT_Update); // Clear the interrupt flag
+		 
+      L_Motor_Speed = (step_acc[Motor_index]*handle[hand+mis_value]) >> 10; 
+      TIM_SetAutoreload(TIM2, L_Motor_Speed);
+      GPIO_Write(GPIOE, L_Motor_step[L_step++]);
+
+      if(L_step > 7) L_step = 0;
+		 
+		 if( end_check==1 )
+			 end_step++;
+	     start_step++;
+		 
+   }
+}
+
+void TIM3_IRQHandler(void)
+{
+   if(TIM_GetITStatus(TIM3,TIM_IT_Update) != RESET)
+   {
+       TIM_ClearITPendingBit(TIM3, TIM_IT_Update); // Clear the interrupt flag
+
+      if(Motor_index < Acc_Limit){
+	      
+        if(ready%2==0){					
+				Motor_index++;
+				}
+				ready++;
+			}
+        else if(Motor_index > Acc_Limit) Motor_index--;
+
+			
+
+      R_Motor_Speed = (step_acc[Motor_index] * handle[hand-mis_value]) >> 10; 
+      TIM_SetAutoreload(TIM3, R_Motor_Speed);
+      GPIO_Write(GPIOD, R_Motor_step[R_step++]);
+      if(R_step > 7) R_step = 0;
+   }
+}
+

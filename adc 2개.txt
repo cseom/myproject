@@ -1,0 +1,129 @@
+#include "stm32f10x.h"
+
+float ADC[2];
+int adc_num = 0;
+int cnt = 0;
+int led = 0;
+
+
+
+void ADC_channel_conveter(void);
+
+
+
+int main()
+{
+
+
+		while (1)
+		{
+			ADC_channel_conveter();
+
+				
+		}
+}
+
+void RCC_Configuration(void)
+{
+
+		
+		
+
+}
+
+
+void GPIO_Configuration_ADC(void)
+{
+	
+		GPIO_InitTypeDef GPIO_InitStructure;
+	
+		GPIO_InitStructure.GPIO_Pin =
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+		GPIO_Init(,&GPIO_InitStructure);
+
+		
+	
+} 
+	
+
+
+void ADC1_Configuration(void)
+{
+		ADC_InitTypeDef ADC_InitStructure;	
+	
+		ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+		ADC_InitStructure.ADC_ScanConvMode = DISABLE; //ADC control register1의 scan 비트부분설정
+		ADC_InitStructure.ADC_ContinuousConvMode = DISABLE; //ADC control register2의 cont비트부분설정 DISABLE이면 한번수행 ENABLE이면 여러번수행 
+		ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;//ADC control register2의 EXTSEL 비트부분설정
+		ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;//ADC control register2dml align 비트부분설정(0이면 right,1이면 left)
+		ADC_InitStructure.ADC_NbrOfChannel = 1;//신호변환 갯수
+		ADC_Init(ADC1,&ADC_InitStructure);
+
+		ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+		ADC_Cmd(ADC1,ENABLE);
+
+		ADC_ResetCalibration(ADC1);
+		while(ADC_GetResetCalibrationStatus(ADC1));
+
+		ADC_ResetCalibration(ADC1);
+		while(ADC_GetCalibrationStatus(ADC1));
+	
+ 		
+}	
+
+void TIM_Configuration_ADC(void) 
+{ 
+		TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+
+		TIM_TimeBaseStructure.TIM_Period = ; //100us 맞추기
+		TIM_TimeBaseStructure.TIM_Prescaler = ;
+		TIM_TimeBaseStructure.TIM_ClockDivision = 0;  // 0x0
+		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  // 0x0	
+		TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+   
+		TIM_ITConfig(TIM4, TIM_IT_Update, ENABLE);
+		TIM_Cmd(TIM4, ENABLE);
+}
+
+
+void NVIC_Configuration_ADC(void)
+{
+		NVIC_InitTypeDef NVIC_InitStructure;
+	
+		
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; 
+		NVIC_Init(&NVIC_InitStructure);
+}
+
+
+
+void ADC_channel_conveter(void)
+{	
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_0 + adc_num,  1, ADC_SampleTime_55Cycles5); //ADC채널및 sampling time 설정
+    ADC_Cmd(ADC1, ENABLE);
+   
+		ADC_ResetCalibration(ADC1); // Calibration 안하면 쓰레기값
+		while(ADC_GetResetCalibrationStatus(ADC1));
+ 
+		ADC_StartCalibration(ADC1);
+		while(ADC_GetCalibrationStatus(ADC1)); 
+		
+    ADC_SoftwareStartConvCmd(ADC1, ENABLE); //adc 변환 시작
+	
+    while(ADC_GetFlagStatus(ADC1,0x2)== SET) //변환이 끝나고 End of Conversion Stais가 활성화 되면 데이터를 가지고옴
+			ADC[adc_num]= ADC_GetConversionValue(ADC1); // ADC_GetFlagStatus(ADC1,0x2)==RESET 이 레지스터 값이 0이면 데이터받는중 1이면 데이터받기끝
+}
+
+void TIM4_IRQHandler(void)
+{
+  if(TIM_GetITStatus(TIM4,TIM_IT_Update) != 0)
+  {
+		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+    		adc_num++;
+		if(adc_num > 1)
+			adc_num = 0;
+  }
+}
+

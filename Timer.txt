@@ -1,0 +1,44 @@
+void TIMER_PORT_Init(void)
+{
+	TIM_TimeBaseInitTypeDef		A;
+	TIM_OCInitTypeDef					B;
+	NVIC_InitTypeDef   NVIC_STR;
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	
+		// Initialize Timer
+	A.TIM_Period = 1000-1; // 2000 for 10us
+	A.TIM_Prescaler = 1200-1; 
+	A.TIM_ClockDivision = 0;
+	A.TIM_CounterMode = TIM_CounterMode_Up;
+	A.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM3, &A);
+
+//	TIM_ARRPreloadConfig(TIM3, ENABLE);
+	TIM_Cmd(TIM3, ENABLE);
+	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+	NVIC_STR.NVIC_IRQChannel = TIM3_IRQn; 						// I'm gonna use TIM2
+	NVIC_STR.NVIC_IRQChannelPreemptionPriority = 0;		// Just priority thingy.
+	NVIC_STR.NVIC_IRQChannelSubPriority = 1;
+	NVIC_STR.NVIC_IRQChannelCmd = ENABLE;							// Enables NVIC
+	NVIC_Init(&NVIC_STR); 
+}
+
+void TIM3_IRQHandler(void)
+{
+    if(TIM_GetITStatus(TIM3,TIM_IT_Update) != RESET)
+    {
+			TIM_ClearITPendingBit(TIM3, TIM_IT_Update);  Clear the interrupt flag
+ 			ms_counter++;
+    }
+ 
+		
+}
+
+
+void delay_ms(unsigned int delay)
+{
+		ms_counter=0;
+    while(ms_counter < delay);
+}

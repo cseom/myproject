@@ -1,0 +1,78 @@
+#include "stm32f10x.h"
+
+void GPIO_SET(void);
+void TIMER_SET(void);
+
+int counter=0;
+
+int main()
+{
+	GPIO_SET();																//GPIO설정함수호출
+	TIMER_SET();															//TIMER설정함수호출
+	
+	while(1);																	//계속 반복해야하므로
+	
+}
+
+
+void GPIO_SET(void)													//GPIO설정함수
+{
+	GPIO_InitTypeDef A;												//GPIO_InitTypeDef [구조체 이름]
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);   //GPIOA를 ENABLE 시킨다
+	
+	
+	//엘이디 핀설정
+	A.GPIO_Pin=GPIO_Pin_4;										//핀 번호
+	A.GPIO_Mode=GPIO_Mode_Out_PP;							//모드 설정
+	A.GPIO_Speed = GPIO_Speed_50MHz;					//속도 설정
+	GPIO_Init(GPIOA,&A);											//제출
+
+}
+
+void TIMER_SET(void)
+{
+	NVIC_InitTypeDef NVIC_SET;								//NVIC_InitTypeDef [구조체 이름]
+	TIM_TimeBaseInitTypeDef TIM_SET;					//TIM_TimeBaseInitTypeDef [구조체 이름]
+	
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);		//2번 타이머 ENABLE
+	
+	NVIC_SET.NVIC_IRQChannel = TIM2_IRQn;			//TIMER2에 대한 우선순위설정
+	NVIC_SET.NVIC_IRQChannelPreemptionPriority = 0;	//첫번째 우선순위
+	NVIC_SET.NVIC_IRQChannelSubPriority = 1;				//두번째 우선순위
+	NVIC_SET.NVIC_IRQChannelCmd = ENABLE;						//ENABLE
+	NVIC_Init(&NVIC_SET);														//제출
+	
+					
+	
+	TIM_SET.TIM_Period = 72-1;											//period 설정
+	TIM_SET.TIM_Prescaler = 1000-1;									//prescaler 설정
+	TIM_SET.TIM_ClockDivision = 0;									//clockdivision 설정
+	TIM_SET.TIM_CounterMode = TIM_CounterMode_Up;		//count up모드
+	TIM_TimeBaseInit(TIM2,&TIM_SET);								//제출
+	
+		
+	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);				//TIMER2에 대한 interrupt ENABLE
+	TIM_Cmd(TIM2,ENABLE);									
+	
+}
+
+void TIM2_IRQHandler(void)
+{
+	if(TIM_GetITStatus(TIM2,TIM_IT_Update) != 0)		//인터럽트가 발생
+	{	
+		TIM_ClearITPendingBit(TIM2,TIM_IT_Update);		//인터럽트 초기화 (계속 인터럽트를 받을 수 있도록)
+		counter++;			//인터럽트가 발생될 때마다 증가
+		
+		if(counter==2000)		//원하는 만큼이 되면 
+		{
+			GPIOA->BSRR=GPIO_Pin_4;	//LED SET
+		}
+		else if(counter==4000)	// 그 후 원하는 만큼이 되면
+		{
+			GPIOA->BRR=GPIO_Pin_4;	//LED RESET
+			counter=0;						//다시 초기화하여 위의 SET과 RESET을 반복하게 한다
+		}
+	}
+}
+

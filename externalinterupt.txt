@@ -1,0 +1,88 @@
+#include "stm32f10x.h"
+
+void GPIO_SET(void);
+void EXTI_SET(void);
+
+int led=0;
+
+int main()
+{
+	
+	GPIO_SET();																//GPIO설정함수호출
+	EXTI_SET();																//외부인터럽트 설정 함수 호출
+	while(1)
+	{
+		if(led==1)															//led=1(아래의 handler함수 참고)이면
+			GPIOA->BSRR=GPIO_Pin_4;								//led set
+		else																		//아니면
+			GPIOA->BRR=GPIO_Pin_4;								//led reset
+	}
+	
+}
+
+
+void GPIO_SET(void)													//GPIO설정함수
+{
+	GPIO_InitTypeDef A;												//GPIO_InitTypeDef [구조체 이름]
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);   //GPIOA를 ENABLE 시킨다
+	
+	
+	//엘이디 핀설정
+	A.GPIO_Pin=GPIO_Pin_4;								//핀 번호
+	A.GPIO_Mode=GPIO_Mode_Out_PP;						//모드 설정
+	A.GPIO_Speed = GPIO_Speed_50MHz;					//속도 설정
+	GPIO_Init(GPIOA,&A);								//제출
+	
+	
+	//스위치 핀설정
+	A.GPIO_Pin=GPIO_Pin_5;								//핀 번호
+	A.GPIO_Mode=GPIO_Mode_IPU;							//모드 설정 (pull_up모드 (눌리지 않았을 때 high->누르면 low)
+	A.GPIO_Speed = GPIO_Speed_50MHz;					//속도 설정
+	GPIO_Init(GPIOA,&A);								//제출
+	
+	
+}
+
+void EXTI_SET(void)
+{
+	EXTI_InitTypeDef EXTI_SET;								//EXTI_InitTypeDef [구조체 이름]
+	NVIC_InitTypeDef NVIC_SET;								//NVIC_InitTypeDef [구조체 이름]
+	
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);		//External Interrupt를 사용하기 위해 Alternative Function을 ENABLE 해준다
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource5); //EXTILine Configuration으로 인터럽트로 사용할 핀과 그 핀의 포트를 설정해준다
+
+	//외부인터럽트 설정
+	EXTI_SET.EXTI_Line = EXTI_Line5;					//EXTI_Line 설정
+	EXTI_SET.EXTI_Mode = EXTI_Mode_Interrupt;		//인터럽트 모드
+	EXTI_SET.EXTI_Trigger = EXTI_Trigger_Rising_Falling;			//rising edge 일 떄와 falling edge일 떄 인터럽트 발생
+	EXTI_SET.EXTI_LineCmd = ENABLE;						//설정한 라인 ENABLE
+	EXTI_Init(&EXTI_SET);											//제출
+	
+	//우선 순위 설정
+	NVIC_SET.NVIC_IRQChannel = EXTI9_5_IRQn;		//EXTI
+	NVIC_SET.NVIC_IRQChannelPreemptionPriority = 0;		//첫번째 우선순위 (숫자가 낮을수록 실행될 권한이 높아진다)
+	NVIC_SET.NVIC_IRQChannelSubPriority = 1;			//두번쨰 우선순위
+	NVIC_SET.NVIC_IRQChannelCmd = ENABLE;				//ENALBLE
+	NVIC_Init(&NVIC_SET);								//제출
+	
+	
+}
+
+void EXTI9_5_IRQHandler(void)								//인터럽트의 Handler함수
+{
+	if(EXTI_GetITStatus(EXTI_Line5)!= RESET)  //인터럽트가 발생되면
+	{
+			if(led==0)														//초기값이 0이었던 led변수가
+				led=1;														//1로 바뀐다 이 때 main문을 보면 led==1이 될 때 LED가 SET되므로 켜지게 된다
+			else															//우리가 설정한 인터럽트가 rising_falling방식이므로 스위치가 눌리면 falling edge로 인터럽트가 실행되어 LED가 SET되고
+																			//스위치를 누르지 않았을 떄는 rising_edge가 된다 이 떄 LED를 RESET 시켜줘야하므로
+				led=0;													    //값이 1인 led변수를 0으로 초기화시켜주어 LED를 RESET시킨다(main문을 보면 led==0일 때 BRR이므로)
+			
+			EXTI_ClearITPendingBit(EXTI_Line5);		//인터럽트 초기화
+	}
+
+}
+
+
